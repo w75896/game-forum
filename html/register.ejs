@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/img/favicon.png" type="image/x-icon">
+    <title>遊戲論壇註冊</title>
+    <style>
+        body {
+            font-family: '微軟正黑體', sans-serif;
+            background-color: #FDF7E4;
+            color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .register-container {
+            background-color: #DED0B6;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.7);
+            width: 320px;
+        }
+        h2 {
+            margin-bottom: 25px;
+            text-align: center;
+            color: #706D54;
+        }
+        label {
+            display: block;
+            margin: 15px 0 5px;
+            font-weight: bold;
+            color: #504B38;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            margin-top: 25px;
+            width: 100%;
+            background-color: #A08963;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            color: #121212;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        input[type="submit"]:hover {
+            background-color: #706D54;
+        }
+        .error-msg {
+            color: #ff4444;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+        }
+        .success-msg {
+            color: #4CAF50;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+        }
+        a.back-login {
+            color: #706D54;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+        }
+        a.back-login:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h2>註冊新帳號</h2>
+        <form action="/register" method="POST">
+            <label for="username">使用者名稱</label>
+            <input type="text" id="username" name="username" required />
+
+            <label for="password">密碼</label>
+            <input type="password" id="password" name="password" required />
+
+            <label for="password2">再次輸入密碼</label>
+            <input type="password" id="password2" name="password2" required />
+
+            <label for="username">Email</label>
+            <input type="text" id="email" name="email" required />
+
+            <input type="submit" value="註冊" />
+        </form>
+        <div class="error-msg" id="error-msg"></div>
+        <a href="/login" class="back-login">回到登入頁</a>
+    </div>
+
+    <script>
+        // 顯示錯誤訊息或成功訊息
+        const params = new URLSearchParams(window.location.search);
+        const errorMsg = params.get('error');
+        const successMsg = params.get('success');
+
+        if (errorMsg) {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.textContent = decodeURIComponent(errorMsg);
+            errorDiv.style.color = '#ff4444';
+            errorDiv.style.display = 'block';
+        }
+        if (successMsg) {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.textContent = decodeURIComponent(successMsg);
+            errorDiv.style.color = '#4CAF50';
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

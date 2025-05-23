@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http‑equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/forum.css">
+    <link rel="icon" href="/img/favicon.png" type="image/x-icon">
+    <title>遊戲論壇 ‑ 首頁</title>
+
+</head>
+
+<body>
+    <!-- ===== 側邊欄 ===== -->
+    <aside class="sidebar">
+        <!-- Logo 與標題 -->
+        <a class="lo" href="/forum">
+            <div class="logo">🎮</div>
+            <div class="ll"> 遊戲論壇</div>
+        </a>
+
+
+        <ul class="nav-list">
+            <!-- 首頁 -->
+            <li id="li0" onclick="window.location.href = '/forum'">首頁</li>
+            <% if (boards && boards.length> 0) { %>    
+                <% boards.forEach(board=> { %>
+                    <li id="li<%= board.BoardID  %>" onclick="window.location.href = '/enter_forum?gameid=<%= board.BoardID  %>'">
+                        <%= board.Name %>
+                    </li>
+                <% }) %>
+            <% } %>
+        </ul>
+    </aside>
+
+    <!-- ===== 主要內容 ===== -->
+    <section class="main">
+        <!-- 上方欄位列 -->
+        <div class="topbar">
+            <div class="columns">
+                <span class="uid">使用者: <span id="playerId"></span></span>
+            </div>
+
+            <div class="search-box">
+                <form action="/search_forum" method="GET">
+                    <input type="text" id="searchInput" name="keyword" placeholder="搜尋貼文和文章...">
+
+
+                    <button class="searchbt" type="submit"><img class="searchicon"
+                            src="https://img.icons8.com/ios-filled/50/search--v1.png" alt="search--v1" /></button>
+                </form>
+            </div>
+
+            <div class="avatar-box" id="toper" title="<%= username %>">
+                <!-- 人頭 SVG -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
+                    <circle cx="12" cy="7" r="4"></circle>
+                    <path d="M5 21c0-4 3-6 7-6s7 2 7 6"></path>
+                </svg>
+                <!-- BUG -->
+                <div class="avatar-dropdown" style="display: none;">
+                    <ul>
+                        <li><a>個人檔案</a></li>
+                        <li><a>登出</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 貼文列舉 -->
+        <div class="post-area">
+            <% if (posts && posts.length> 0) { %>
+                <% posts.forEach(post=> { %>
+                    <div class="post-card" data-post-id="<%= post.PostID %>">
+                        <span class="top">
+                            <h3 class="post-title">
+                                <%= post.Title %>
+                            </h3>
+                            <p class="meta">
+                                作者：<%= post.Username %>｜
+                                    看板：<%= post.Name %>｜
+                                        發佈時間：<%= new Date(post.CreationDate).toLocaleString() %>
+                            </p>
+                        </span>
+                        <span class="mid">
+                            <p class="summary">
+                                <%= post.Content ? (post.Content.length> 400 ? post.Content.substring(0, 400) + '...' :
+                                    post.Content) : '' %>
+                            </p>
+                        </span>
+                        <span class="bot">
+                            <p id="like"><img class="l1"
+                                    style="position: relative;width: 20px;height: 20px;bottom: 3px;"
+                                    src="/img/good.png">
+                                <%= post.LikeCount %>
+                            </p>
+                            <p id="comment"><img style="position: relative;width: 25px;height: 25px;bottom: 0px;"
+                                    src="/img/comment.png">
+                                <%= post.CommentCount %>
+                            </p>
+                            <p id="watch"><img style="position: relative;width: 25px;height: 25px;bottom: 1px;"
+                                    src="/img/eye_icon.png">
+                                <%= post.ViewCount %>
+                            </p>
+                        </span>
+
+
+                    </div>
+                    <% }) %>
+                        <% } else { %>
+                            <div class="no-post-card">目前尚無貼文</div>
+                            
+                            <% } %>
+                                <div class="avatar-box" id="ToCreatePost" title="發布貼文">
+
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px"
+                                        viewBox="0 0 24 24" fill="none">
+                                        <path fill-rule="evenodd" clip-rule="evenodd"
+                                            d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z"
+                                            fill="#080341" />
+                                    </svg>
+                                </div>
+
+        </div>
+
+    </section>
+    <script src="/script/forum.js"></script>
+</body>
+
+</html>

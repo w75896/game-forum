@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/img/favicon.png" type="image/x-icon">
+    <title>
+        <%= post.Title %> - 遊戲論壇
+    </title>
+    <link rel="stylesheet" href="/css/post.css">
+    
+    
+</head>
+
+<body>
+    <header class="header">
+        <a class="lo" href="/forum">
+            <div class="logo">🎮</div>
+            <div class="ll"> 遊戲論壇</div>
+        </a>
+    </header>
+
+    <div class="post-container">
+        <div class="post-header">
+            <img src="<%= post.ProfilePicture %>" alt="作者頭像" class="profile-picture">
+            <h2 class="post-title">
+                <%= post.Title %>
+            </h2>
+            <p class="post-meta">
+                作者：<%= post.Username %>｜看板：<%= post.BoardName %>｜發佈時間：<%= new Date(post.CreationDate).toLocaleString()
+                            %>
+            </p>
+        </div>
+
+        <div class="post-content">
+            <p>
+                <%= post.Content %>
+            </p>
+        </div>
+
+        <div class="post-footer">
+            <span id="like"><img id="l1"
+                    style="position: relative;width: 20px;height: 20px;bottom: -1px; cursor: pointer"
+                    src="/img/good.png">
+                <span id="l2">
+                    <%= post.LikeCount %>
+                </span>
+            </span>
+            <span id="comment"><img style="position: relative;width: 25px;height: 25px;bottom: -6px;"
+                    src="/img/comment.png">
+                <%= post.CommentCount %>
+            </span>
+            <span id="watch"><img style="position: relative;width: 25px;height: 25px;bottom: -5px;"
+                    src="/img/eye_icon.png">
+                <%= post.ViewCount %>
+            </span>
+            <a class="back-button btn" href="/forum">⭠ 返回論壇</a>
+        </div>
+        <div class="comment-container">
+            <h3 class="comment-title">留言區</h3>
+            <div class="comment-area">
+                <% if (comments && comments.length> 0) { %>
+                    <% comments.forEach(comment=> { %>
+                        <div class="comment-card">
+                            <p class="auth-img">
+                                <img style="width: 34px; width: 34px;max-width: 34px;max-height: 34px;" src="<%= comment.ProfilePicture %>">
+                            </p>
+                            <p class="auth-name">
+                                <%= comment.Username %>：
+                            </p>
+                            <p class="comment-content">
+                                <%= comment.Content %>
+                            </p>
+                            <p class="comment-meta">
+                            ｜<%= new Date(comment.CreationDate).toLocaleString() %>
+                            </p>
+                        </div>
+                        <% }) %>
+                            <% } else { %>
+                                <div class="no-comments">目前沒有留言</div>
+                                <% } %>
+            </div>
+
+            <form id="comment-form" action="/post/<%= post.PostID %>/comment" method="POST">
+                <textarea name="content" id="comment-box" placeholder="發表你的留言..." required></textarea>
+                <button type="submit" id="comment-btn" class="btn">送出留言</button>
+            </form>
+
+        </div>
+
+
+        <script src="/script/post.js"></script>
+    </div>
+</body>
+
+</html>
