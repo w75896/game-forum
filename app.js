@@ -13,6 +13,7 @@ app.set('views', path.join(__dirname, 'html'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 const multer = require('multer');
+const { request } = require('http');
 const upload = multer();
 // 解析 POST 表單資料
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -38,17 +39,14 @@ const pool = mysql.createPool({
 });
 
 
-
 // 首頁導向登入頁
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
-
 // 顯示登入頁
 app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
-
 // 處理登入請求
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -65,6 +63,8 @@ app.post('/login', (req, res) => {
 
     // 登入成功
     req.session.username = username;
+    req.session.userid = results[0].UserID;
+    req.session.role = results[0].Role;
 
     pool.query(
       'UPDATE users SET LastLoginDate = NOW() WHERE Username = ?',
@@ -80,16 +80,72 @@ app.post('/login', (req, res) => {
 
   });
 });
+// 訪客登入路由
+app.get('/guest-login', (req, res) => {
+  const guestUsername = 'GUEST';
+  const guestPassword = '無';
+
+  pool.query('SELECT * FROM users WHERE Username = ?', [guestUsername], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.redirect('/login?error=' + encodeURIComponent('資料庫錯誤'));
+    }
+
+    if (results.length === 0 || results[0].Password !== guestPassword) {
+      return res.redirect('/login?error=' + encodeURIComponent('訪客帳號不存在或密碼錯誤'));
+    }
+
+    // 訪客登入成功
+    req.session.username = guestUsername;
+    req.session.userid = results[0].UserID;
+    req.session.role = results[0].Role;
+
+    // 更新最後登入時間
+    pool.query(
+      'UPDATE users SET LastLoginDate = NOW() WHERE Username = ?',
+      [guestUsername],
+      (err, results) => {
+        if (err) {
+          console.error(err);
+          return res.redirect('/login?error=' + encodeURIComponent('訪客登入時更新時間失敗'));
+        }
+        res.redirect('/forum');
+      }
+    );
+  });
+});
+app.get('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      console.log('登出錯誤:', err);
+      return res.status(500).send('無法登出');
+    }
+    res.clearCookie('connect.sid'); // 清除瀏覽器的 session cookie
+    res.redirect('/login'); // 導回登入頁或首頁
+  });
+});
 // 註冊頁面
 app.get('/register', (req, res) => {
   res.render('register');
 });
-
 // 註冊頁面
 app.get('/personalfile', (req, res) => {
+  if (!req.session.username) return res.redirect('/login');
   const username = req.session.username;
-
-  res.render('personalfile', { username });
+  const sql = 'SELECT * FROM boards';
+  pool.query(sql, (err, results1) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: '資料庫錯誤' });
+    }
+    pool.query(`SELECT posts.PostID,comments.Content,users.Username,notifications.* ,posts.Title AS postname FROM users,comments,posts,notifications WHERE notifications.UserID=? AND posts.PostID = RelatedPostID AND RelatedCommentID=CommentID AND comments.AuthorID=users.UserID ORDER BY Timestamp DESC LIMIT 5`, [req.session.userid], (err, results3) => {
+      res.render('personalfile', {
+        username,
+        boards: results1,
+        nofica:results3
+      });
+    });
+  });
 });
 // 註冊處理
 app.post('/register', (req, res) => {
@@ -127,7 +183,6 @@ app.post('/register', (req, res) => {
     });
   });
 });
-
 // 論壇首頁（需要登入）
 app.get('/forum', (req, res) => {
   if (!req.session.username) return res.redirect('/login');
@@ -139,7 +194,8 @@ app.get('/forum', (req, res) => {
     }
 
 
-    pool.query(`SELECT posts.* , Username, Name, boards.BoardID FROM posts, users, boards WHERE AuthorID = UserID AND posts.BoardID = boards.BoardID ORDER BY 
+    pool.query(`SELECT posts.* ,tags.Name AS tag, Username,ProfilePicture , boards.Name, boards.BoardID 
+                FROM tags, posttags,posts, users, boards WHERE tags.TagID = posttags.TagID AND posts.PostID = posttags.PostID AND AuthorID = UserID AND posts.BoardID = boards.BoardID ORDER BY 
                 CASE 
                 WHEN posts.CreationDate >= DATE_SUB(NOW(), INTERVAL 14 DAY) THEN 0
                 ELSE 1
@@ -149,17 +205,26 @@ app.get('/forum', (req, res) => {
         console.error(err);
         return res.redirect('/register?error=' + encodeURIComponent('文章載入失敗'));
       }
-
-      res.render('forum', {
-        username: req.session.username,
-        boards: results1,
-        posts: results,
+      pool.query(`SELECT tags.* FROM tags`, [], (err, results2) => {
+        if (err) {
+          console.error(err);
+          return res.redirect('/register?error=' + encodeURIComponent('文章載入失敗'));
+        }
+        pool.query(`SELECT posts.PostID,comments.Content,users.Username,notifications.* ,posts.Title AS postname FROM users,comments,posts,notifications WHERE notifications.UserID=? AND posts.PostID = RelatedPostID AND RelatedCommentID=CommentID AND comments.AuthorID=users.UserID ORDER BY Timestamp DESC LIMIT 5`, [req.session.userid], (err, results3) => {
+          res.render('forum', {
+            username: req.session.username,
+            boards: results1,
+            posts: results,
+            Tags: results2,
+            query: req.query,
+            nofica:results3
+          });
+        });
       });
     });
   });
 
 });
-
 app.post('/post/:id/checklike', (req, res) => {
   const postid = req.params.id;
   const username = req.session.username;
@@ -198,7 +263,6 @@ app.post('/post/:id/checklike', (req, res) => {
     }
   );
 });
-
 app.post('/post/:id/like', (req, res) => {
   const postid = req.params.id;
   const username = req.session.username;
@@ -295,9 +359,11 @@ app.post('/post/:id/like', (req, res) => {
     }
   );
 });
-
 app.get('/createPost', (req, res) => {
   if (!req.session.username) return res.redirect('/login');
+  if (req.session.role === "guest") {
+    return res.status(401).json({ error: '權限不足' });
+  }
   const sql = 'SELECT * FROM users WHERE Username = ?';
   pool.query(sql, [req.session.username], (err, results) => {
     if (err) {
@@ -326,7 +392,7 @@ app.get('/createPost', (req, res) => {
   });
 
 });
-app.post('/createPost',upload.none(), (req, res) => {
+app.post('/createPost', upload.none(), (req, res) => {
   if (!req.session.username) return res.redirect('/login');
   const { title, tag, content, board } = req.body;
   const author = req.session.username;
@@ -382,8 +448,82 @@ app.get('/get-userid', (req, res) => {
     }
   });
 });
+app.post('/delete_post/:id', (req, res) => {
+  const postId = req.params.id;
+  const username = req.session.username;
+  if (!username) return res.redirect('/login');
 
+  const checkSql = `
+    SELECT posts.*, users.Username, boards.ModeratorID
+    FROM posts 
+    JOIN users ON posts.AuthorID = users.UserID 
+    JOIN boards ON posts.BoardID = boards.BoardID
+    WHERE posts.PostID = ?
+  `;
 
+  pool.query(checkSql, [postId], (err, postResults) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('伺服器錯誤');
+    }
+
+    if (postResults.length === 0) {
+      return res.status(404).send('找不到該文章');
+    }
+
+    const post = postResults[0];
+
+    const userSql = 'SELECT * FROM users WHERE Username = ?';
+    pool.query(userSql, [username], (err, userResults) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('伺服器錯誤');
+      }
+
+      const user = userResults[0];
+
+      const isOwner = post.Username === username;
+      const isAdmin = user.Role === 'administrator';
+      const isModerator = post.ModeratorID === user.UserID;
+
+      if (!isOwner && !isAdmin && !isModerator) {
+        return res.status(403).send('無權刪除別人的文章');
+      }
+
+      const deleteTagSql = 'DELETE FROM posttags WHERE PostID = ?';
+      const deleteComSql = 'DELETE FROM comments WHERE PostID = ?';
+      const deleteLikeSql = 'DELETE FROM likes WHERE PostID = ?';
+      const deletePostSql = 'DELETE FROM posts WHERE PostID = ?';
+
+      pool.query(deleteTagSql, [postId], (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('刪除標籤失敗');
+        }
+        pool.query(deleteComSql, [postId], (err) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).send('刪除留言失敗');
+          }
+          pool.query(deleteLikeSql, [postId], (err) => {
+            if (err) {
+              console.error(err);
+              return res.status(500).send('刪除按讚失敗');
+            }
+            pool.query(deletePostSql, [postId], (err) => {
+              if (err) {
+                console.error(err);
+                return res.status(500).send('刪除文章失敗');
+              }
+
+              res.redirect('/forum');
+            });
+          });
+        });
+      });
+    });
+  });
+});
 app.get('/get-userinfo', (req, res) => {
   const account = req.session.username;
 
@@ -416,6 +556,24 @@ app.get('/get-userinfo', (req, res) => {
     }
   });
 });
+app.post('/update-bio', (req, res) => {
+  const account = req.session.username;
+  const { bio } = req.body;
+
+  if (!account) {
+    return res.status(401).json({ error: '尚未登入' });
+  }
+
+  const sql = 'UPDATE users SET Bio = ? WHERE Username = ?';
+  pool.execute(sql, [bio, account], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: '資料庫錯誤' });
+    }
+
+    res.json({ success: true });
+  });
+});
 app.get('/get-user-posts', (req, res) => {
   const username = req.session.username;
 
@@ -441,8 +599,239 @@ app.get('/get-user-posts', (req, res) => {
     res.json(results);
   });
 });
+app.get('/get-user-favorites', (req, res) => {
+  const username = req.session.username;
+  if (!username) {
+    return res.status(401).json({ error: '尚未登入' });
+  }
+
+  const sql = `
+    SELECT posts.PostID, posts.Title, posts.CreationDate, boards.Name 
+    FROM collections
+    JOIN posts ON collections.PostID = posts.PostID
+    JOIN boards ON posts.BoardID = boards.BoardID
+    JOIN users ON collections.UserID = users.UserID
+    WHERE users.Username = ?
+    ORDER BY posts.CreationDate DESC
+  `;
+
+  pool.query(sql, [username], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: '取得收藏文章失敗' });
+    }
+    res.json(results);
+  });
+});
+app.post('/favorite/:id', (req, res) => {
+  const userId = req.session.userid;
+  const postId = req.params.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: '請先登入' });
+  }
+  const checkSql = 'SELECT * FROM collections WHERE UserID = ? AND PostID = ?';
+  const insertSql = 'INSERT INTO collections (UserID, PostID) VALUES (?, ?)';
+  const deleteSql = 'DELETE FROM collections WHERE UserID = ? AND PostID = ?';
+
+  pool.query(checkSql, [userId, postId], (err, results) => {
+    if (err) {
+      console.error('查詢收藏紀錄失敗:', err);
+      return res.status(500).json({ error: '伺服器錯誤' });
+    }
+
+    if (results.length > 0) {
+      pool.query(deleteSql, [userId, postId], (delErr, delResult) => {
+        if (delErr) {
+          console.error('取消收藏失敗:', delErr);
+          return res.status(500).json({ error: '取消收藏失敗' });
+        }
+        return res.json({ success: true, action: 'deleted' });
+      });
+    } else {
+      pool.query(insertSql, [userId, postId], (insErr, insResult) => {
+        if (insErr) {
+          console.error('加入收藏失敗:', insErr);
+          return res.status(500).json({ error: '加入收藏失敗' });
+        }
+        return res.json({ success: true, action: 'inserted' });
+      });
+    }
+  });
+});
+app.get('/get-user-favorites/:id', (req, res) => {
+  const userId = req.session.userid;
+  const postId = req.params.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: '請先登入' });
+  }
+
+  const sql = `
+    SELECT * FROM collections WHERE UserID = ? AND PostID = ?
+  `;
+
+  pool.query(sql, [userId, postId], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: '取得收藏失敗' });
+    }
+
+    if (results.length > 0) {
+      return res.json({ if: "yes" });
+    } else {
+      return res.json({ if: "no" }); 
+    }
+  });
+});
+app.post('/edit/:id', (req, res) => {
+  const username = req.session.username;
+  const postId = req.params.id;
+
+  if (!username) {
+    return res.redirect("/login");
+  }
+
+  // 查詢文章與作者名稱
+  const checkSql = `
+    SELECT posts.*, users.Username, boards.ModeratorID
+    FROM posts 
+    JOIN users ON posts.AuthorID = users.UserID 
+    JOIN boards ON posts.BoardID = boards.BoardID
+    WHERE posts.PostID = ?
+  `;
+
+  pool.query(checkSql, [postId], (err, postResults) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('伺服器錯誤');
+    }
+
+    if (postResults.length === 0) {
+      return res.status(404).send('找不到該文章');
+    }
+
+    const post = postResults[0];
+
+    // 查詢目前登入的使用者資料
+    const sql = 'SELECT * FROM users WHERE Username = ?';
+    pool.query(sql, [username], (err, userResults) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: '資料庫錯誤' });
+      }
+
+      const user = userResults[0];
+
+      const isOwner = post.Username === username;
+      const isAdmin = user.Role === "administrator";
+      const isModerator = post.ModeratorID === user.UserID;
+
+      if (!isOwner && !isAdmin && !isModerator) {
+        return res.status(403).send('無權編輯別人的文章');
+      }
 
 
+      pool.query("SELECT * FROM boards", (err, boards) => {
+        if (err) return res.status(500).json({ error: '資料庫錯誤' });
+
+        pool.query("SELECT * FROM tags", (err, tags) => {
+          if (err) return res.status(500).json({ error: '資料庫錯誤' });
+
+          pool.query(`
+            SELECT tags.Name AS tag, posttags.TagID, posts.*, boards.Name AS BoardName, boards.BoardID 
+            FROM tags
+            JOIN posttags ON tags.TagID = posttags.TagID
+            JOIN posts ON posttags.PostID = posts.PostID
+            JOIN boards ON posts.BoardID = boards.BoardID
+            WHERE posts.PostID = ?
+          `, [postId], (err, finalPostResults) => {
+            if (err) return res.status(500).json({ error: '資料庫錯誤' });
+
+            return res.render("edit", {
+              username: username,
+              user: user,
+              boards: boards,
+              tags: tags,
+              post: finalPostResults[0]
+            });
+          });
+        });
+      });
+    });
+  });
+});
+app.post('/updatePost/:id', upload.none(), (req, res) => {
+  const username = req.session.username;
+  const postid = req.params.id;
+  const { title, tag, content, board } = req.body;
+
+  if (!username) {
+    return res.redirect("/login");
+  }
+
+  const checkSql = `
+    SELECT posts.*, users.Username, boards.ModeratorID
+    FROM posts 
+    JOIN users ON posts.AuthorID = users.UserID 
+    JOIN boards ON posts.BoardID = boards.BoardID
+    WHERE posts.PostID = ?
+  `;
+
+  pool.query(checkSql, [postid], (err, postResults) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('伺服器錯誤');
+    }
+
+    if (postResults.length === 0) {
+      return res.status(404).send('找不到該文章');
+    }
+
+    const post = postResults[0];
+
+    const userSql = `SELECT * FROM users WHERE Username = ?`;
+    pool.query(userSql, [username], (err, userResults) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('伺服器錯誤');
+      }
+
+      const user = userResults[0];
+
+      const isOwner = post.Username === username;
+      const isAdmin = user.Role === "administrator";
+      const isModerator = post.ModeratorID === user.UserID;
+
+      if (!isOwner && !isAdmin && !isModerator) {
+        return res.status(403).send('無權編輯別人的文章');
+      }
+
+
+      const updatePostSql = `
+        UPDATE posts SET Title = ?, Content = ?, BoardID = ? WHERE PostID = ?
+      `;
+      pool.query(updatePostSql, [title, content, board, postid], (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: '更新文章失敗' });
+        }
+
+        const updateTagSql = `
+          UPDATE posttags SET TagID = ? WHERE PostID = ?
+        `;
+        pool.query(updateTagSql, [tag, postid], (err) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).json({ error: '更新標籤失敗' });
+          }
+
+          return res.json({ success: true, postid: postid });
+        });
+      });
+    });
+  });
+});
 app.get('/enter_forum', (req, res) => {
   const gameid = req.query.gameid;
   if (!req.session.username) return res.redirect('/login');
@@ -453,70 +842,148 @@ app.get('/enter_forum', (req, res) => {
       return res.status(500).json({ error: '資料庫錯誤' });
     }
     pool.query(
-      `SELECT posts.*, users.Username, boards.Name, boards.BoardID
-        FROM posts
-        JOIN users ON posts.AuthorID = users.UserID
-        JOIN boards ON posts.BoardID = boards.BoardID
-        WHERE boards.BoardID = ?
-        ORDER BY posts.LikeCount DESC`,
+      `SELECT 
+      posts.*,
+      tags.Name AS tag,
+      users.Username,
+      users.ProfilePicture,
+      boards.Name AS BoardName,
+      boards.BoardID
+      FROM posts
+      JOIN posttags ON posts.PostID = posttags.PostID
+      JOIN tags ON posttags.TagID = tags.TagID
+      JOIN users ON posts.AuthorID = users.UserID
+      JOIN boards ON posts.BoardID = boards.BoardID
+      WHERE boards.BoardID = ?
+      ORDER BY posts.LikeCount DESC;`,
       [gameid],
       (err, results) => {
         if (err) {
           console.error(err);
           return res.redirect('/register?error=' + encodeURIComponent('文章載入失敗'));
         }
-
-        res.render('forum', {
-          username: req.session.username,
-          boards: results1,
-          posts: results
+        pool.query(`SELECT tags.* FROM tags`, [], (err, results2) => {
+          if (err) {
+            console.error(err);
+            return res.redirect('/register?error=' + encodeURIComponent('文章載入失敗'));
+          }
+          pool.query(`SELECT posts.PostID,comments.Content,users.Username,notifications.* ,posts.Title AS postname FROM users,comments,posts,notifications WHERE notifications.UserID=? AND posts.PostID = RelatedPostID AND RelatedCommentID=CommentID AND comments.AuthorID=users.UserID ORDER BY Timestamp DESC LIMIT 5`, [req.session.userid], (err, results3) => {
+            res.render('forum', {
+              username: req.session.username,
+              boards: results1,
+              posts: results,
+              Tags: results2,
+              query: req.query,
+              nofica:results3
+            });
+          });
         });
-      }
-    );
+      });
   });
 });
-
 app.get('/search_forum', (req, res) => {
-  let keyword = req.query.keyword;
-  keyword = `%${keyword}%`;
   if (!req.session.username) return res.redirect('/login');
-  const sql = 'SELECT * FROM boards';
-  pool.query(sql, (err, results1) => {
+
+  let keyword = req.query.keyword || '';
+  let tag = req.query.tag || '';
+  let time = req.query.time || '0';
+  let board = req.query.board || '';
+
+  keyword = `%${keyword}%`;
+
+  // 先撈 boards
+  pool.query('SELECT * FROM boards', (err, boardsResult) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: '資料庫錯誤' });
     }
-    pool.query(
-      'SELECT posts.* , users.Username , boards.Name,boards.BoardID AS BoardName FROM posts JOIN users ON posts.AuthorID = users.UserID JOIN boards ON posts.BoardID = boards.BoardID WHERE posts.Title LIKE ?   OR posts.Content LIKE ? ORDER BY posts.LikeCount DESC',
-      [keyword, keyword],
-      (err, results) => {
+
+    // 建立主查詢 SQL 與條件
+    let sql = `
+      SELECT 
+        posts.*, 
+        tags.Name AS tag, 
+        users.ProfilePicture, 
+        users.Username, 
+        boards.Name AS BoardName
+      FROM posts
+      JOIN posttags ON posts.PostID = posttags.PostID
+      JOIN tags ON tags.TagID = posttags.TagID
+      JOIN users ON posts.AuthorID = users.UserID
+      JOIN boards ON posts.BoardID = boards.BoardID
+      WHERE (posts.Title LIKE ? OR posts.Content LIKE ?)
+    `;
+
+    const params = [keyword, keyword];
+
+    // 若前端有傳 board ID，加入條件
+    if (board !== '') {
+      sql += ' AND posts.BoardID = ?';
+      params.push(board);
+    }
+
+    // 若前端有傳 tag ID，加入條件
+    if (tag !== '') {
+      sql += ' AND tags.TagID = ?';
+      params.push(tag);
+    }
+
+    // 若前端有傳時間篩選，加入條件
+    if (time !== '0') {
+      let interval = '';
+      switch (time) {
+        case '1day': interval = 'INTERVAL 1 DAY'; break;
+        case '7days': interval = 'INTERVAL 7 DAY'; break;
+        case '30days': interval = 'INTERVAL 30 DAY'; break;
+        case '1year': interval = 'INTERVAL 1 YEAR'; break;
+        case '3years': interval = 'INTERVAL 3 YEAR'; break;
+        case '5years': interval = 'INTERVAL 5 YEAR'; break;
+      }
+      if (interval) {
+        sql += ` AND posts.CreationDate >= NOW() - ${interval}`;
+      }
+    }
+
+    sql += ' ORDER BY posts.LikeCount DESC';
+
+    // 查詢貼文
+    pool.query(sql, params, (err, postsResult) => {
+      if (err) {
+        console.error(err);
+        return res.redirect('/register?error=' + encodeURIComponent('文章載入失敗'));
+      }
+
+      // 查詢 tag 資料
+      pool.query('SELECT * FROM tags', (err, tagsResult) => {
         if (err) {
           console.error(err);
           return res.redirect('/register?error=' + encodeURIComponent('文章載入失敗'));
         }
-
-        res.render('forum', {
-          username: req.session.username,
-          boards: results1,
-          posts: results
+        pool.query(`SELECT posts.PostID,comments.Content,users.Username,notifications.* ,posts.Title AS postname FROM users,comments,posts,notifications WHERE notifications.UserID=? AND posts.PostID = RelatedPostID AND RelatedCommentID=CommentID AND comments.AuthorID=users.UserID ORDER BY Timestamp DESC LIMIT 5`, [req.session.userid], (err, results3) => {
+          res.render('forum', {
+            username: req.session.username,
+            boards: boardsResult,
+            posts: postsResult,
+            Tags: tagsResult,
+            query: req.query,
+            nofica:results3
+          });
         });
-      }
-    );
+      });
+    });
   });
 });
-
 app.get('/post/:id', (req, res) => {
   const postId = req.params.id;
-
   if (!req.session.username) return res.redirect('/login');
-
   const sql = `
-    SELECT posts.*, users.Username,users.ProfilePicture, boards.Name AS BoardName 
-    FROM posts 
-    JOIN users ON posts.AuthorID = users.UserID 
-    JOIN boards ON posts.BoardID = boards.BoardID 
-    WHERE posts.PostID = ?
-  `;
+    SELECT posts.*, tags.Name AS tag, users.Username, users.ProfilePicture, boards.Name AS BoardName ,boards.ModeratorID
+    FROM posts
+    JOIN posttags ON posts.PostID = posttags.PostID
+    JOIN tags ON posttags.TagID = tags.TagID
+    JOIN users ON posts.AuthorID = users.UserID
+    JOIN boards ON posts.BoardID = boards.BoardID
+    WHERE posts.PostID = ?;`;
 
   pool.query(sql, [postId], (err, results) => {
     if (err || results.length === 0) {
@@ -539,30 +1006,33 @@ app.get('/post/:id', (req, res) => {
         username: req.session.username,
         post: results[0],
         comments: results1,
+        userid: req.session.userid,
+        role: req.session.role,
+
       });
-
     });
-
-
-
   });
 });
-
 app.post('/post/:id/comment', (req, res) => {
   const postId = req.params.id;
   const content = req.body.content;
   const username = req.session.username;
-
+  const postAuthor = req.body.postAuthor;
   if (!username) return res.redirect('/login');
 
   pool.query(
     'INSERT INTO comments (PostID, AuthorID, Content) VALUES (?, (SELECT UserID FROM users WHERE Username = ?), ?)',
     [postId, username, content],
-    (err) => {
+    (err,result) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ success: false, error: '留言失敗' });
       }
+      let cid=result.insertId;
+      if(postAuthor!==username){
+        pool.query('INSERT INTO notifications (UserID, RelatedPostID , RelatedCommentID) VALUES ((SELECT UserID FROM users,posts WHERE posts.PostID= ? AND users.UserID = posts.AuthorID),?,?)',[postId, postId, cid],(err) => {});
+      }
+      
       pool.query("UPDATE posts SET CommentCount = CommentCount+1 WHERE posts.PostID = ?", [postId], (err) => {
         if (err) {
           console.error(err);
@@ -575,7 +1045,6 @@ app.post('/post/:id/comment', (req, res) => {
     }
   );
 });
-
 // 登出
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {

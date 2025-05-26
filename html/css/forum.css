@@ -1,4 +1,3 @@
-/* -------- 全域 -------- */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -21,12 +20,12 @@ a {
 /* -------- 側邊欄 -------- */
 .sidebar {
     width: 250px;
-    background: #E8F0FE;
+    background: #e9f2fb;
     border-right: 2px solid #e0e0e0;
     display: flex;
     flex-direction: column;
     gap: 0px;
-    
+
     box-sizing: border-box;
 }
 
@@ -49,9 +48,10 @@ a {
 }
 
 .nav-list {
+    position: relative;
     border-top: 2px solid #e0e0e0;
     list-style: none;
-    display: flex;
+
     flex-direction: column;
     gap: 0px;
     overflow: auto;
@@ -62,21 +62,33 @@ a {
 
 .nav-list li {
     font-size: 18px;
+    height: 60px;
     cursor: pointer;
-    padding: 15px 20px;
+
     font-weight: bold;
-    transition: background-color 0.7s ease, color 0.7s ease; /* ✅ 加入平滑動畫 */
+
 
 }
 
-.nav-list li:hover {
-    background-color: #9fdfff66;
+.loo {
+    position: absolute;
+    margin: 5px 10px;
+    width: calc(100% - 20px);
+    height: 50px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    padding: 15px 10px;
+    transition: background-color 0.7s ease, color 0.7s ease;
+    /* ✅ 加入平滑動畫 */
 }
 
-.nav-list li.active {
-    color: #ff9900;
+.loo:hover {
     background-color: #0055aa33;
-    width: 100%;
+}
+
+.active {
+    color: #ff9900;
+    background-color: #9fdfff66;
 }
 
 /* -------- 主要區塊 -------- */
@@ -98,7 +110,7 @@ a {
     height: 62px;
 }
 
-.topbar .columns {
+.topbar {
     display: flex;
     gap: 150px;
     font-weight: 600;
@@ -116,11 +128,14 @@ a {
     align-items: center;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    z-index: 9999;
 }
 
 .avatar-box:hover {
     transform: translate(-1.8px, -1.8px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
 }
 
 .avatar-box svg {
@@ -130,22 +145,24 @@ a {
 
 /* 貼文清單容器 */
 .post-area {
-    
+
     flex: 1;
     overflow-y: auto;
     padding: 25px;
-    background: #ECEFF4;
+    background: #f7fafc;
 }
 
 /* 單一貼文卡片 */
 .post-card {
+
     position: relative;
+    z-index: 3;
     width: 100%;
-    height: 150px;
-    background: #ffffff;
-    border: 2px solid #393E46;
+    height: 190px;
+    background-color: #f2f6fa;
+    border: 2.5px solid #e2e8f0;
     border-radius: 2px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 4px 4px 2px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     margin-bottom: 20px;
     display: flex;
@@ -155,14 +172,15 @@ a {
     flex-direction: column;
     /* 垂直排列 */
 }
+
 .no-post-card {
     position: relative;
     width: 100%;
     height: 150px;
-    background: #ffffff;
-    border: 2px solid #393E46;
+    background-color: #f2f6fa;
+    border: 2.5px solid #e2e8f0;
     border-radius: 2px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 4px 4px 2px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     margin-bottom: 20px;
     font-family: Arial, Helvetica, sans-serif;
@@ -174,6 +192,7 @@ a {
     align-items: center;
     justify-content: center;
 }
+
 .post-title {
     position: relative;
     top: 5px;
@@ -191,12 +210,13 @@ a {
     font-size: 16px;
 }
 
-.post-card .meta {
+
+.time {
     font-size: 14px;
     color: #888;
-    position: relative;
+    position: absolute;
     bottom: 0px;
-    left: 15px;
+    right: 15px;
     margin: 7px;
     display: flex;
 
@@ -209,6 +229,7 @@ a {
 }
 
 .mid {
+    margin: 10px 0 10px -5px;
     height: 65%;
     width: 100%;
 }
@@ -222,6 +243,10 @@ a {
     display: flex;
     flex-direction: row;
     justify-content: flex-end;
+}
+
+.puid {
+    font-size: 14px;
 }
 
 #like {
@@ -282,7 +307,19 @@ a {
     outline: none;
     padding-right: 20px;
     width: 50%;
-    margin-left: 10%;
+
+    transition: all 0.3s ease;
+}
+
+.adva {
+    padding: 5px 2px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+
+    position: relative;
+    right: 20px;
+    width: 100px;
+
     transition: all 0.3s ease;
 }
 
@@ -354,6 +391,7 @@ form {
 }
 
 .lo {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -362,29 +400,131 @@ form {
     text-decoration: none;
 
     border-radius: 8px;
-    
-    flex-shrink: 0; 
+
+    flex-shrink: 0;
 }
-#ToCreatePost{
+
+#ToCreatePost {
     position: fixed;
     bottom: 20px;
     right: 20px;
     background-color: #c1d5f4;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    transition: box-shadow 1s ease-in-out, background-color 1s ease-in-out,transform 0.3s ease-in-out;
-    
+    transition: box-shadow 1s ease-in-out, background-color 1s ease-in-out, transform 0.3s ease-in-out;
+
 }
-#ToCreatePost:hover{
+
+#ToCreatePost:hover {
     background-color: #a0bfefec;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-#avatar-dropdown{
+
+.avatar-dropdown {
     display: none;
+    padding: 5px;
+    width: 200px;
+    height: 140px;
     position: absolute;
-    top: 0;
-    left: -100%;
+    top: 101%;
+    /* 關鍵：對齊 avatar 元素上方 */
+    right: 0;
+    margin-bottom: 8px;
+    /* 可選：留點距離 */
     background: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
-    z-index: 2;
+    border-radius: 8px;
+    z-index: 9999;
+}
+
+.avatar-dropdown ul {
+    list-style: none;
+    padding: 5px;
+    margin: 0;
+    width: 100%;
+}
+
+.avatar-dropdown li {
+    width: 100%;
+    padding: 5px 10px 5px 10px;
+
+}
+
+#lip {
+    display: block;
+    border-bottom: 1px solid #ccc;
+    width: 100%;
+    padding: 0 0 5px 0;
+}
+
+#ni {
+    position: absolute;
+    right: 20px;
+}
+
+.btag {
+
+    position: relative;
+    top: 12px;
+    left: 10px;
+    display: flex;
+    font-size: 13px;
+    color: #888888;
+    font-weight: 300;
+}
+
+
+.auth {
+
+    position: absolute;
+    bottom: 5px;
+    left: 10px;
+    display: flex;
+    font-size: 13px;
+    color: #888888;
+    font-weight: 300;
+}
+
+.authimg {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin: 0 5px 5px 0;
+
+}
+
+.tag {
+    background-color: #e0e0e0;
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    border-radius: 50px;
+    padding: 0px 5px;
+    margin: 0 0 14px 6px;
+    border: #333 1px solid;
+}
+
+.hidden {
+    display: none;
+}
+#nofi{
+    position: relative;
+}
+#noarea{
+    width: 450px;
+    height: auto;
+    background-color: #fff;
+    display: none;
+    position: absolute;
+    top: -5px;
+    left: -460px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+}
+#noarea:hover{
+    display: block;
+}
+#nofi li{
+    
+    display: block;
+
 }

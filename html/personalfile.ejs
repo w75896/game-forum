@@ -8,59 +8,56 @@
     <link rel="stylesheet" href="/css/personalfile.css">
     <link rel="icon" href="/img/favicon.png" type="image/x-icon">
     <title>遊戲論壇 ‑ 首頁</title>
-
 </head>
 
 <body>
-    <!-- ===== 側邊欄 ===== -->
     <aside class="sidebar">
-        <!-- Logo 與標題 -->
         <a class="lo" href="/forum">
             <div class="logo">🎮</div>
             <div class="ll"> 遊戲論壇</div>
         </a>
-
-
         <ul class="nav-list">
-            <li id="li0" onclick="window.location.href = '../forum'">首頁</li>
-            <li id="li1" onclick="window.location.href = '/enter_forum?gameid=1'">英雄聯盟</li>
-            <li id="li7" onclick="window.location.href = '/enter_forum?gameid=7'">絕地求生</li>
-            <li id="li6" onclick="window.location.href = '/enter_forum?gameid=6'">CS:GO</li>
-            <li id="li19" onclick="window.location.href = '/enter_forum?gameid=19'">堡壘之夜</li>
-            <li id="li3" onclick="window.location.href = '/enter_forum?gameid=3'">APEX</li>
-            <li id="li2" onclick="window.location.href = '/enter_forum?gameid=2'">特戰英豪</li>
-            <li id="li4" onclick="window.location.href = '/enter_forum?gameid=4'">Minecraft</li>
-            <li id="li18" onclick="window.location.href = '/enter_forum?gameid=18'">RUST</li>
-            <li id="li5" onclick="window.location.href = '/enter_forum?gameid=5'">Dota 2</li>
-            <li id="li8" onclick="window.location.href = '/enter_forum?gameid=8'">原神</li>
-            <li id="li9" onclick="window.location.href = '/enter_forum?gameid=9'">崩壞：星穹鐵道</li>
-            <li id="li10" onclick="window.location.href = '/enter_forum?gameid=10'">薩爾達傳說 王國之淚</li>
-            <li id="li11" onclick="window.location.href = '/enter_forum?gameid=11'">FIFA 24</li>
-            <li id="li12" onclick="window.location.href = '/enter_forum?gameid=12'">動物森友會</li>
-            <li id="li13" onclick="window.location.href = '/enter_forum?gameid=13'">鬥陣特工 2</li>
-            <li id="li14" onclick="window.location.href = '/enter_forum?gameid=14'">Elden Ring</li>
-            <li id="li15" onclick="window.location.href = '/enter_forum?gameid=15'">Terraria</li>
-            <li id="li16" onclick="window.location.href = '/enter_forum?gameid=16'">虹彩六號：圍攻行動</li>
-            <li id="li17" onclick="window.location.href = '/enter_forum?gameid=17'">Final Fantasy XIV</li>
+            <li id="li0" onclick="window.location.href = '/forum'"><span class="loo">首頁</span></li>
+            <% if (boards && boards.length> 0) { %>
+                <% boards.forEach(board=> { %>
+                    <li id="li<%= board.BoardID  %>"
+                        onclick="window.location.href = '/enter_forum?gameid=<%= board.BoardID  %>'">
+                        <span class="loo">
+                            <%= board.Name %>
+                        </span>
+                    </li>
+                    <% }) %>
+                        <% } %>
         </ul>
     </aside>
-
-    <!-- ===== 主要內容 ===== -->
     <section class="main">
-        <!-- 上方欄位列 -->
         <div class="topbar">
-            <div class="columns">
-                <span class="uid">使用者: <span id="playerId"></span></span>
-            </div>
+
             <div class="avatar-box" title="<%= username %>">
-                <!-- 人頭 SVG -->
                 <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
                     <circle cx="12" cy="7" r="4"></circle>
                     <path d="M5 21c0-4 3-6 7-6s7 2 7 6"></path>
                 </svg>
+                <div class="avatar-dropdown" style="display: none;">
+                    <ul>
+                        <li><a id="lip" href="#">
+                                <%= username %><span id="ni">您好！</span>
+                            </a></li>
+                        <li><a href="/personalfile">個人檔案</a></li>
+                        <li><a href="#" id="logoutBtn">登出</a></li>
+                        <li id="nofi"><a href="#" id="notificationBtn">通知</a>
+                            <ul id="noarea">
+                                <% if (nofica && nofica.length> 0) { %>
+                                    <% nofica.forEach(no=> { %>
+                                        <li><a href="/post/<%=no.PostID%>"><%=no.Username%>回應你的貼文<%=no.postname%> <br> 說:<%=no.Content%></a></li>
+                                        <% }) %>
+                                            <% } %>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
-
         <div class="profile">
             <div class="profile-section">
                 <h2>玩家詳細資料</h2>
@@ -96,27 +93,33 @@
                     <label>註冊日期：</label>
                     <span id="regDate"></span>
                 </div>
-                <div class="profile-item">
+                <div class="profile-item profile-item-with-button">
                     <label>簡介：</label>
-                    <span id="bio"></span>
+                    <div class="bio-content">
+                        <span id="bio"></span>
+                        <button class="edit-bio-btn <%=username==="GUEST"?"hidden":""%>" id="editBioBtn"
+                            onclick="editBio()">修改</button>
+                    </div>
                 </div>
                 <div class="profile-item">
                     <img id="pic" src="">
                 </div>
             </div>
         </div>
-        <div class="post-list-section">
-            <h2>發表文章列表</h2>
-            <ul class="post-list" id="userPosts">
-                <!-- 動態插入文章 -->
+        <div style="display: flex;flex-direction: row;">
+            <div class="post-list-section">
+                <h2>發表文章列表</h2>
+                <ul class="post-list" id="userPosts">
+                </ul>
+            </div>
+            <div class="post-list-section">
+                <h2>收藏文章列表</h2>
+                <ul class="post-list" id="userFav">
+                </ul>
 
-            </ul>
-            
+            </div>
         </div>
-
-
     </section>
-
     <script src="/script/personalfile.js"></script>
 </body>
 

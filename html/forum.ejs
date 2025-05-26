@@ -12,64 +12,94 @@
 </head>
 
 <body>
-    <!-- ===== 側邊欄 ===== -->
     <aside class="sidebar">
-        <!-- Logo 與標題 -->
         <a class="lo" href="/forum">
             <div class="logo">🎮</div>
             <div class="ll"> 遊戲論壇</div>
         </a>
-
-
         <ul class="nav-list">
-            <!-- 首頁 -->
-            <li id="li0" onclick="window.location.href = '/forum'">首頁</li>
-            <% if (boards && boards.length> 0) { %>    
+            <li id="li0" onclick="window.location.href = '/forum'"><span class="loo">首頁</span></li>
+            <% if (boards && boards.length> 0) { %>
                 <% boards.forEach(board=> { %>
-                    <li id="li<%= board.BoardID  %>" onclick="window.location.href = '/enter_forum?gameid=<%= board.BoardID  %>'">
-                        <%= board.Name %>
+                    <li id="li<%= board.BoardID  %>"
+                        onclick="window.location.href = '/enter_forum?gameid=<%= board.BoardID  %>'">
+                        <span class="loo">
+                            <%= board.Name %>
+                        </span>
                     </li>
-                <% }) %>
-            <% } %>
+                    <% }) %>
+                        <% } %>
         </ul>
     </aside>
-
-    <!-- ===== 主要內容 ===== -->
     <section class="main">
-        <!-- 上方欄位列 -->
         <div class="topbar">
-            <div class="columns">
-                <span class="uid">使用者: <span id="playerId"></span></span>
-            </div>
+
 
             <div class="search-box">
                 <form action="/search_forum" method="GET">
-                    <input type="text" id="searchInput" name="keyword" placeholder="搜尋貼文和文章...">
-
-
+                    <input type="text" id="searchInput" name="keyword" value="<%= query.keyword || '' %>"
+                        placeholder="搜尋貼文和文章...">
                     <button class="searchbt" type="submit"><img class="searchicon"
                             src="https://img.icons8.com/ios-filled/50/search--v1.png" alt="search--v1" /></button>
+
+                    <select class="adva" name="board">
+                        <option value="">所有板塊</option>
+                        <% boards.forEach(board=> { %>
+                            <option value="<%= board.BoardID %>" <%=board.BoardID==query.board ? 'selected' : '' %>>
+                                <%= board.Name %>
+                            </option>
+                            <% }); %>
+                    </select>
+                    <select class="adva" name="time">
+                        <option value="0" <%=query.time=='0' ? 'selected' : '' %>>不限時間</option>
+                        <option value="1day" <%=query.time=='1day' ? 'selected' : '' %>>過去 1 天</option>
+                        <option value="7days" <%=query.time=='7days' ? 'selected' : '' %>>過去 7 天</option>
+                        <option value="30days" <%=query.time=='30days' ? 'selected' : '' %>>過去 30 天</option>
+                        <option value="1year" <%=query.time=='1year' ? 'selected' : '' %>>過去 1 年</option>
+                        <option value="3years" <%=query.time=='3years' ? 'selected' : '' %>>過去 3 年</option>
+                        <option value="5years" <%=query.time=='5years' ? 'selected' : '' %>>過去 5 年</option>
+                    </select>
+                    <select class="adva" name="tag">
+                        <option value="">所有標籤</option>
+                        <% Tags.forEach(tag=> { %>
+                            <option value="<%= tag.TagID %>" <%=tag.TagID==query.tag ? 'selected' : '' %>>
+                                <%= tag.Name %>
+                            </option>
+                            <% }); %>
+                    </select>
+
+
+
                 </form>
             </div>
 
             <div class="avatar-box" id="toper" title="<%= username %>">
-                <!-- 人頭 SVG -->
                 <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
                     <circle cx="12" cy="7" r="4"></circle>
                     <path d="M5 21c0-4 3-6 7-6s7 2 7 6"></path>
                 </svg>
-                <!-- BUG -->
                 <div class="avatar-dropdown" style="display: none;">
                     <ul>
-                        <li><a>個人檔案</a></li>
-                        <li><a>登出</a></li>
+                        <li><a id="lip" href="#">
+                                <%= username %><span id="ni">您好！</span>
+                            </a></li>
+                        <li><a href="/personalfile">個人檔案</a></li>
+                        <li><a href="#" id="logoutBtn">登出</a></li>
+                        <li id="nofi"><a href="#" id="notificationBtn">通知</a>
+                            <ul id="noarea">
+                                <% if (nofica && nofica.length> 0) { %>
+                                    <% nofica.forEach(no=> { %>
+                                        <li><a href="/post/<%=no.PostID%>"><%=no.Username%>回應你的貼文<%=no.postname%> <br> 說:<%=no.Content%></a></li>
+                                        <% }) %>
+                                            <% } %>
+                            </ul>
+                        </li>
                     </ul>
                 </div>
             </div>
         </div>
-
-        <!-- 貼文列舉 -->
         <div class="post-area">
+            <div id="anno"></div>
             <% if (posts && posts.length> 0) { %>
                 <% posts.forEach(post=> { %>
                     <div class="post-card" data-post-id="<%= post.PostID %>">
@@ -77,10 +107,14 @@
                             <h3 class="post-title">
                                 <%= post.Title %>
                             </h3>
-                            <p class="meta">
-                                作者：<%= post.Username %>｜
-                                    看板：<%= post.Name %>｜
-                                        發佈時間：<%= new Date(post.CreationDate).toLocaleString() %>
+                            <div class="btag">
+
+                                <p class="tag">
+                                    <%= post.tag %>
+                                </p>
+                            </div>
+                            <p class="time">
+                                <%= new Date(post.CreationDate).toLocaleString() %>
                             </p>
                         </span>
                         <span class="mid">
@@ -90,6 +124,12 @@
                             </p>
                         </span>
                         <span class="bot">
+                            <div class="auth">
+                                <img class="authimg" src="<%= post.ProfilePicture %>" alt="作者頭像">
+                                <p class="puid">
+                                    <%= post.Username %>
+                                </p>
+                            </div>
                             <p id="like"><img class="l1"
                                     style="position: relative;width: 20px;height: 20px;bottom: 3px;"
                                     src="/img/good.png">
@@ -104,15 +144,14 @@
                                 <%= post.ViewCount %>
                             </p>
                         </span>
-
-
                     </div>
                     <% }) %>
                         <% } else { %>
                             <div class="no-post-card">目前尚無貼文</div>
-                            
+
                             <% } %>
-                                <div class="avatar-box" id="ToCreatePost" title="發布貼文">
+                                <div class="avatar-box <%= username===" GUEST"?"hidden":"" %>" id="ToCreatePost"
+                                    title="發布貼文">
 
                                     <svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px"
                                         viewBox="0 0 24 24" fill="none">
@@ -121,9 +160,7 @@
                                             fill="#080341" />
                                     </svg>
                                 </div>
-
         </div>
-
     </section>
     <script src="/script/forum.js"></script>
 </body>

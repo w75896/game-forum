@@ -3,10 +3,10 @@ const resultDiv = document.getElementById('resultDiv');
 
 form.addEventListener('submit', function (event) {
     event.preventDefault();
-    console.log("表單提交事件綁定");
-    const formData = new FormData(form);
 
-    fetch('/createPost', {
+    const formData = new FormData(form);
+    const postid = form.querySelector('input[name="postid"]').value;
+    fetch('/updatePost/' + postid, {
         method: 'POST',
         body: formData,
     })

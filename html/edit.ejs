@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>
-        遊戲論壇-建立文章
+        遊戲論壇-編輯文章
     </title>
     <link rel="stylesheet" href="/css/createPost.css">
     <link rel="icon" href="/img/favicon.png" type="image/x-icon">
@@ -17,18 +17,21 @@
             <div class="ll"> 遊戲論壇</div>
         </a>
     </header>
-    <form class="post-content">
+    <form class="post-content" method="POST" action="/updatePost/<%=post.PostID%>">
+        <input type="hidden" name="postid" value="<%= post.PostID %>">
         <div class="post-container">
             <div id="resultDiv">
-                <p id="retext">發文成功！</p>
+                <p id="retext">編輯成功！</p>
 
-                <button type="button" id="viewBtn">前往查看</button>
+                <button id="viewBtn">前往查看</button>
             </div>
             <div class="post-header">
 
                 <img src="<%= user.ProfilePicture %>" alt="作者頭像" class="profile-picture">
                 <select id="board" name="board" required>
-                    <option value="">選擇看板</option>
+                    <option value="<%= post.BoardID%>">
+                        <%= post.BoardName %>
+                    </option>
                     <% if (boards && boards.length> 0) { %>
                         <% boards.forEach(board=> { %>
                             <option value="<%= board.BoardID %>">
@@ -38,11 +41,14 @@
                                 <% } %>
 
                 </select>
-                <input type="text" id="post-title" name="title" placeholder="輸入文章標題" required>
+                <input type="text" id="post-title" name="title" value="<%=post.Title%>" placeholder="輸入文章標題" required>
 
                 <p class="post-meta">
                     <select id="tag" name="tag" required>
-                        <option value="">選擇文章標籤</option>
+
+                        <option value="<%= post.TagID%>">
+                            <%= post.tag %>
+                        </option>
                         <% if (tags && tags.length> 0) { %>
                             <% tags.forEach(tag=> { %>
                                 <option value="<%= tag.TagID %>">
@@ -57,16 +63,17 @@
             </div>
 
             <div class="post-content">
-                <textarea id="inner-content" name="content" placeholder="請輸入文章內容..." required></textarea>
-                <a class="back-button btn" href="/forum">⭠ 保留草稿並返回</a>
+                <textarea id="inner-content" name="content" placeholder="請輸入文章內容..."
+                    required><%= post.Content%></textarea>
+                <a class="back-button btn" href="/forum">⭠ 退出</a>
 
             </div>
-            <button id="submit" class="btn" type="submit">發佈文章</button>
+            <button id="submit" class="btn" type="submit">完成編輯</button>
 
 
         </div>
     </form>
-    <script src="/script/createPost.js"></script>
+    <script src="/script/edit.js"></script>
 </body>
 
 </html>

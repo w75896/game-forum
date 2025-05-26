@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -16,24 +17,28 @@
             height: 100vh;
             margin: 0;
         }
+
         .register-container {
             background-color: #DED0B6;
             padding: 30px 40px;
             border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.7);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
             width: 320px;
         }
+
         h2 {
             margin-bottom: 25px;
             text-align: center;
             color: #706D54;
         }
+
         label {
             display: block;
             margin: 15px 0 5px;
             font-weight: bold;
             color: #504B38;
         }
+
         input[type="text"],
         input[type="password"] {
             width: 100%;
@@ -42,6 +47,7 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
+
         input[type="submit"] {
             margin-top: 25px;
             width: 100%;
@@ -54,21 +60,25 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
+
         input[type="submit"]:hover {
             background-color: #706D54;
         }
+
         .error-msg {
             color: #ff4444;
             margin-top: 15px;
             text-align: center;
             display: none;
         }
+
         .success-msg {
             color: #4CAF50;
             margin-top: 15px;
             text-align: center;
             display: none;
         }
+
         a.back-login {
             color: #706D54;
             text-decoration: none;
@@ -76,11 +86,13 @@
             text-align: center;
             margin-top: 20px;
         }
+
         a.back-login:hover {
             text-decoration: underline;
         }
     </style>
 </head>
+
 <body>
     <div class="register-container">
         <h2>註冊新帳號</h2>
@@ -102,9 +114,7 @@
         <div class="error-msg" id="error-msg"></div>
         <a href="/login" class="back-login">回到登入頁</a>
     </div>
-
     <script>
-        // 顯示錯誤訊息或成功訊息
         const params = new URLSearchParams(window.location.search);
         const errorMsg = params.get('error');
         const successMsg = params.get('success');
@@ -123,4 +133,5 @@
         }
     </script>
 </body>
+
 </html>
